@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import keccak256 from 'keccak256';
-import { sensorDataPayloadSchema } from '../middleware/validation.js';
+import { sensorDataPayloadSchema, ValidatedSensorDataPayload } from '../middleware/validation.js';
 import { memoryQueue } from '../../services/queue/memoryQueue.js';
-import type { ApiResponse, ProcessedSensorData, SensorDataPayload } from '../../types/index.js';
+import type { ApiResponse, ProcessedSensorData } from '../../types/index.js';
 
 const router = Router();
 
@@ -29,7 +29,7 @@ router.post('/sensor-data', async (req: Request, res: Response) => {
             return res.status(400).json(response);
         }
 
-        const payload: SensorDataPayload = validationResult.data;
+        const payload: ValidatedSensorDataPayload = validationResult.data;
 
         // 2. Verify device signature (placeholder - implement actual signature verification)
         const isValidSignature = verifyDeviceSignature(payload);
@@ -51,7 +51,7 @@ router.post('/sensor-data', async (req: Request, res: Response) => {
             serialNumber: payload.serialNumber,
             sensorId: payload.sensorId,
             timestamp: payload.timestamp,
-            readings: payload.readings,
+            readings: payload.readings as ProcessedSensorData['readings'],
             receivedAt: Date.now(),
             dataHash,
         };
@@ -88,7 +88,7 @@ router.post('/sensor-data', async (req: Request, res: Response) => {
  * Verify device signature
  * TODO: Implement actual ECDSA signature verification using the device's public key
  */
-function verifyDeviceSignature(payload: SensorDataPayload): boolean {
+function verifyDeviceSignature(payload: ValidatedSensorDataPayload): boolean {
     // For now, accept all signatures in development mode
     // In production, this should verify the signature against:
     // 1. The device's registered public key
@@ -102,7 +102,7 @@ function verifyDeviceSignature(payload: SensorDataPayload): boolean {
 /**
  * Create a keccak256 hash of the sensor data for integrity verification
  */
-function createDataHash(payload: SensorDataPayload): string {
+function createDataHash(payload: ValidatedSensorDataPayload): string {
     const dataString = JSON.stringify({
         serialNumber: payload.serialNumber,
         sensorId: payload.sensorId,
