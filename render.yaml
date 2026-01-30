@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: agri-credit-backend
+    runtime: node
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SEPOLIA_RPC_URL
+        sync: false  # Set this in dashboard
+      - key: BLOCKCHAIN_PRIVATE_KEY
+        sync: false  # Set this in dashboard (secret)
+      - key: CONTRACT_ADDRESS
+        sync: false  # Set this in dashboard
