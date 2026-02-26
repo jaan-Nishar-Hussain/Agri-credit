@@ -37,6 +37,7 @@ export interface ProcessedSensorData {
     sensorId: string;
     timestamp: number;
     readings: SensorReading;
+    deviceSignature: string;
     receivedAt: number;
     dataHash: string;
 }

@@ -52,6 +52,7 @@ router.post('/sensor-data', async (req: Request, res: Response) => {
             sensorId: payload.sensorId,
             timestamp: payload.timestamp,
             readings: payload.readings as ProcessedSensorData['readings'],
+            deviceSignature: payload.deviceSignature,
             receivedAt: Date.now(),
             dataHash,
         };

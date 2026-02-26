@@ -1,15 +1,15 @@
 # Agri-Credit Backend
 
-Sensor data ingestion backend with **Avalanche Fuji blockchain** integration for data integrity verification.
+Sensor data ingestion backend with **Blockchain** integration for data integrity verification. This system implements a rollup-style architecture to batch sensor readings and anchor their Merkle roots on-chain.
 
-## Architecture
+## 🏗 Architecture
 
-This backend implements the following architecture:
+The backend implements a modular architecture for high-throughput sensor data processing:
 
 ```
 ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
 │   Sensor Layer  │ → │ Network Layer   │ → │ Processing Layer│ → │Blockchain Layer │
-│  (IoT Devices)  │   │ (API Gateway)   │   │ (Rollup Engine) │   │(Avalanche Fuji) │
+│  (IoT Devices)  │   │ (API Gateway)   │   │ (Rollup Engine) │   │ (Smart Contract)│
 └─────────────────┘   └─────────────────┘   └─────────────────┘   └─────────────────┘
                                                     │
                                                     ↓
@@ -19,157 +19,97 @@ This backend implements the following architecture:
                                            └─────────────────┘
 ```
 
-## Features
+## ✨ Features
 
-- **Webhook API** - POST endpoint for receiving sensor data
-- **Data Validation** - Zod schema validation for incoming payloads
-- **Queue System** - In-memory queue with configurable batch size
-- **Merkle Tree Builder** - Creates integrity proofs for data batches
-- **Blockchain Relayer** - Submits Merkle roots to Avalanche Fuji testnet
-- **Query API** - Retrieve and verify data against on-chain proofs
+- **Webhook API**: High-performance endpoint for receiving sensor data.
+- **Data Validation**: Robust Zod schema validation for all incoming payloads.
+- **Automated Rollups**: In-memory queue that batches data and builds Merkle trees.
+- **Blockchain Anchoring**: Submits Merkle roots to Ethereum (Sepolia) or local Anvil node.
+- **PostgreSQL Integration**: Persistent storage for batches, sensor data, and proofs.
+- **Verification Engine**: API to verify data integrity against on-chain proofs.
 
-## Getting Started
+## 🚀 Local Setup
 
-### Prerequisites
+Follow these steps to get the project running locally.
 
-- Node.js 18+
-- npm or pnpm
-- Avalanche Fuji testnet AVAX (for blockchain transactions)
+### 1. Prerequisites
 
-### Installation
+Ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v18+)
+- [Docker](https://www.docker.com/) & Docker Compose
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (for local blockchain and smart contracts)
+
+### 2. Clone and Install
 
 ```bash
 cd backend
 npm install
 ```
 
-### Configuration
+### 3. Environment Configuration
 
-1. Copy `.env.example` to `.env`:
+Copy the example environment file and update the values:
 
 ```bash
 cp .env.example .env
 ```
 
-2. Configure your environment variables:
+Key variables in `.env`:
+- `PORT`: Server port (default: 3000)
+- `DATABASE_URL`: PostgreSQL connection string
+- `SEPOLIA_RPC_URL`: RPC URL for blockchain (use `http://localhost:8545` for local Anvil)
+- `BLOCKCHAIN_PRIVATE_KEY`: Private key for transactions
+- `CONTRACT_ADDRESS`: Deployed `AgriDataRegistry` contract address
 
-```env
-# Avalanche Fuji Testnet
-AVALANCHE_FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
-BLOCKCHAIN_PRIVATE_KEY=your_private_key_here
-CONTRACT_ADDRESS=deployed_contract_address
+### 4. Database Setup
 
-# Rollup Configuration
-BATCH_SIZE=100
-BATCH_INTERVAL_MS=60000
-```
-
-3. Get testnet AVAX from the [Avalanche Faucet](https://faucet.avax.network/)
-
-### Running the Server
+The project uses PostgreSQL. You can start it easily using Docker Compose:
 
 ```bash
-# Development mode (with hot reload)
+docker-compose up -d
+```
+
+The server will automatically initialize the necessary tables (`batches`, `sensor_data`, `proofs`) upon startup.
+
+### 5. Smart Contract Setup (Foundry)
+
+To run a local blockchain and deploy contracts:
+
+```bash
+# Start a local Ethereum node (Anvil)
+anvil
+
+# In a new terminal, build and deploy the contract
+cd contracts
+forge build
+
+# Deploy to local Anvil (replace <PRIVATE_KEY> with one from Anvil output)
+forge create --rpc-url http://localhost:8545 \
+  --private-key <PRIVATE_KEY> \
+  src/AgriDataRegistry.sol:AgriDataRegistry
+```
+
+Update your `.env` with the `CONTRACT_ADDRESS` returned after deployment.
+
+### 6. Run the Backend
+
+```bash
+# Development mode with hot-reload
 npm run dev
-
-# Production build
-npm run build
-npm start
 ```
 
-## API Endpoints
+## 📁 Project Structure
 
-### Webhook Endpoints
+- `src/api`: Express routes and controllers.
+- `src/services`: Core logic (Rollup Engine, Blockchain Relayer, Database).
+- `src/config`: Environment and app configuration.
+- `contracts/`: Solidity smart contracts and Foundry setup.
+- `docker-compose.yml`: PostgreSQL container definition.
 
-#### POST `/api/webhook/sensor-data`
+## 🛠 API Usage Example
 
-Receive sensor data from IoT devices.
-
-**Request Body:**
-```json
-{
-  "serialNumber": "SN001",
-  "sensorId": "SENSOR001",
-  "deviceSignature": "0x...",
-  "timestamp": 1706489614,
-  "readings": {
-    "temperature": 25.5,
-    "humidity": 60,
-    "soilMoisture": 45
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "dataHash": "0x...",
-    "queuePosition": 1
-  },
-  "timestamp": 1706489614000
-}
-```
-
-#### GET `/api/webhook/health`
-
-Health check for the webhook service.
-
-### Query Endpoints
-
-#### GET `/api/query/data/:batchId`
-
-Retrieve data for a specific batch.
-
-#### GET `/api/query/verify/:batchId/:dataHash`
-
-Verify data inclusion on-chain using Merkle proof.
-
-#### GET `/api/query/stats`
-
-Get system statistics including blockchain status.
-
-#### GET `/api/query/batches`
-
-List all registered batches with pagination.
-
-## Smart Contract
-
-The `AgriDataRegistry.sol` contract is deployed on Avalanche Fuji testnet and provides:
-
-- **registerDataBatch**: Store Merkle root for a batch
-- **verifyDataInclusion**: Verify data is part of a registered batch
-- **getBatchRoot**: Retrieve stored Merkle root
-- **getBatchTimestamp**: Get registration timestamp
-
-### Deploying the Contract
-
-Use Foundry or Hardhat to deploy:
-
+### Submit Sensor Data
 ```bash
-# Using Foundry
-forge create --rpc-url https://api.avax-test.network/ext/bc/C/rpc \
-  --private-key $PRIVATE_KEY \
-  contracts/AgriDataRegistry.sol:AgriDataRegistry
-```
-
-## Data Flow
-
-1. **Sensor Device** sends data via POST to `/api/webhook/sensor-data`
-2. **Validation Layer** validates payload schema and device signature
-3. **Queue** batches incoming data based on size/time thresholds
-4. **Processor** normalizes and enriches data
-5. **Rollup Engine** builds Merkle tree from batch
-6. **Blockchain Relayer** submits Merkle root to Avalanche Fuji
-7. **Time-Series DB** stores batch data and proofs
-8. **Query API** provides data retrieval and verification
-
-## Testing
-
-```bash
-# Send test sensor data
 curl -X POST http://localhost:3000/api/webhook/sensor-data \
   -H "Content-Type: application/json" \
   -d '{
@@ -179,18 +119,16 @@ curl -X POST http://localhost:3000/api/webhook/sensor-data \
     "timestamp": 1706489614,
     "readings": {
       "temperature": 25.5,
-      "humidity": 60,
-      "soilMoisture": 45
+      "humidity": 60
     }
   }'
+```
 
-# Check health
-curl http://localhost:3000/health
-
-# Get stats
+### Check System Stats
+```bash
 curl http://localhost:3000/api/query/stats
 ```
 
-## License
+## 📄 License
 
 MIT

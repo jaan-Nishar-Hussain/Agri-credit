@@ -5,6 +5,7 @@ import webhookRoutes from './api/routes/webhook.routes.js';
 import queryRoutes from './api/routes/query.routes.js';
 import { sepoliaRelayer } from './services/blockchain/relayer.js';
 import { dataProcessor } from './services/processor/dataProcessor.js';
+import { pgDatabase } from './services/database/pgDatabase.js';
 
 // Force import to initialize the processor
 void dataProcessor;
@@ -106,6 +107,16 @@ async function startServer(): Promise<void> {
         console.log('=============================================');
         console.log('Agri-Credit Backend Server');
         console.log('=============================================');
+
+        // Initialize database
+        console.log('[Server] Initializing PostgreSQL database...');
+        try {
+            await pgDatabase.initialize();
+            console.log('[Server] Database initialized');
+        } catch (error) {
+            console.error('[Server] Database initialization failed. Ensure Docker is running.');
+            // Continue even if database fails, fallback to in-memory could be added
+        }
 
         // Initialize blockchain relayer
         console.log('[Server] Initializing Sepolia relayer...');

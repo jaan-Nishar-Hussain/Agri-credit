@@ -1,6 +1,7 @@
 import { merkleTreeBuilder } from './merkleTree.js';
 import { sepoliaRelayer } from '../blockchain/relayer.js';
 import { timeseriesDB } from '../database/timeseries.js';
+import { pgDatabase } from '../database/pgDatabase.js';
 import type { DataBatch, BatchRegistryEntry } from '../../types/index.js';
 
 /**
@@ -42,6 +43,7 @@ class RollupEngine {
 
                 // Update batch record with tx info
                 await timeseriesDB.updateBatchTx(batch.batchId, txResult.txHash);
+                await pgDatabase.updateBatchTx(batch.batchId, txResult.txHash);
             }
 
             console.log(`[RollupEngine] Rollup completed for batch ${batch.batchId} in ${Date.now() - startTime}ms`);
@@ -68,6 +70,7 @@ class RollupEngine {
         };
 
         await timeseriesDB.saveBatch(entry, batch.data, batch.merkleProofs);
+        await pgDatabase.saveBatch(entry, batch.data, batch.merkleProofs);
 
         console.log(`[RollupEngine] Batch ${batch.batchId} stored with ${batch.data.length} data points`);
     }
